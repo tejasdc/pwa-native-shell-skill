@@ -131,6 +131,8 @@ Use `URLComponents.percentEncodedPath` / `percentEncodedQuery` / `percentEncoded
 - `webView.scrollView.bounces = false`, `showsVerticalScrollIndicator = false`, `contentInsetAdjustmentBehavior = .never` — the outer WKWebView is a passive host; the PWA owns scrolling.
 - `webView.isOpaque = false` with `backgroundColor` set to the PWA's body background so no white flash appears during load.
 
+**Recording from the background (App Intents, Action Button).** A recorder asks for the microphone only (input unit `isOutputEnabled = false`, no `defaultToSpeaker`), and a refused start is read by the exact error's meaning, never retried. See `references/ios-audio-from-background.md`.
+
 **Verification gate.** No shell change reaches TestFlight without a simulator screenshot + assertion pass. Boot simulator, install the release build, launch against the production URL, wait for first paint, `xcrun simctl io booted screenshot`, then a Python image analysis asserts: no white band, status bar readable, PWA header not overlapping system chrome, bottom tab bar dark. Wire it into the ship script as a hard gate (`SKIP_VERIFY=1` only bypass).
 
 ## Setup for a new PWA-in-shell
