@@ -133,6 +133,8 @@ Use `URLComponents.percentEncodedPath` / `percentEncodedQuery` / `percentEncoded
 
 **Recording from the background (App Intents, Action Button).** A recorder asks for the microphone only (input unit `isOutputEnabled = false`, no `defaultToSpeaker`), and a refused start is read by the exact error's meaning, never retried. See `references/ios-audio-from-background.md`.
 
+**Notification content extension (custom long-look UI).** A downward flick inside it is iOS's dismiss gesture and the extension always loses it — measured across SwiftUI, UIKit and with the actions removed. Scrolling back is paging controls, not a gesture. See `references/ios-notification-content-extension.md`.
+
 **Verification gate.** No shell change reaches TestFlight without a simulator screenshot + assertion pass. Boot simulator, install the release build, launch against the production URL, wait for first paint, `xcrun simctl io booted screenshot`, then a Python image analysis asserts: no white band, status bar readable, PWA header not overlapping system chrome, bottom tab bar dark. Wire it into the ship script as a hard gate (`SKIP_VERIFY=1` only bypass).
 
 ## Setup for a new PWA-in-shell
