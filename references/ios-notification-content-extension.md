@@ -1,37 +1,48 @@
-# A notification content extension cannot win a downward drag
+# What closes an expanded notification, and what does not
 
-**Rule: inside an expanded notification, reading back through content belongs to controls, never to
-a scroll gesture.** A fast downward flick anywhere in the custom view is iOS's own "put this
-notification away" gesture, and iOS takes it. Put paging marks (one page per tap, disabled at each
-end) in the view and treat dragging as a bonus that works when the user happens to be slow.
+**Rule: inside an expanded notification, reading back through content belongs to controls, not to a
+drag.** A downward drag is judged by the system's outer platter, from how far it went and how fast
+(`PLExpandedPlatterPresentationView.scrollViewDidEndDragging:willDecelerate:`, read out of the
+shipped binary). A long fast one closes the notification; a short or slow one reaches your scroll
+view. Nothing inside the extension changes where that line falls, so give the user paging controls
+(one page per tap, disabled at each end) and treat dragging as a bonus.
 
-**Measured**, iPhone 17 Simulator, iOS 27, 2026-09-24, four variants of the same panel:
+**Measured**, iPhone 17 Simulator, iOS 27, 2026-09-24, one long fast downward flick against each
+arrangement of the same panel:
 
-| Gesture inside the panel | Result |
+| Arrangement | Long fast flick down |
 | --- | --- |
-| Fast flick up | scrolls, panel stays |
-| Slow drag down (≈0.7 s press first) | scrolls, panel stays |
-| Fast flick down | **notification dismissed, every time** |
+| SwiftUI `ScrollView` | closes the notification |
+| Plain `UITableView` | closes the notification |
+| `extensionContext.notificationActions = []` (no action rows) | closes the notification |
+| 300-point panel | closes the notification |
+| 900-point panel | closes the notification |
+| Reply field focused, keyboard up | closes the notification |
+| Any of the above, short or slow drag | scrolls, panel stays |
 
-The fast flick down dismissed with a SwiftUI `ScrollView`, with a plain `UITableView`, with the
-category's three actions showing, and with `extensionContext.notificationActions = []`. So neither
-the UI framework nor the action rows under the panel are the cause, and no in-process change fixes
-it: the extension is hosted remotely by SpringBoard, gesture arbitration happens there, and Apple
-documents no way to make the system's recognizer wait for the extension's scroll view (checked by
-an independent GPT-6 Sol investigation, which found the same silence).
+**Two wrong conclusions this table exists to prevent**, both of which shipped:
+1. *"The action buttons under the panel are stealing the drag."* They are not; removing them changes
+   nothing. (It is still worth dropping rows the panel duplicates, for height and for not showing
+   the same control twice.)
+2. *"Focusing the reply field fixes it, which is why Messages scrolls."* It does not. That run's
+   drag was shorter, which is the whole difference. **When a variant survives, check that the
+   gesture was identical** — measure the drag in screen points, not as a fraction of an element
+   whose size your change just altered. Two rounds here were wasted on exactly that: a
+   "panel-relative" drag turned out to be measured against a 66-point header, so it was a 34-point
+   nudge, not a flick.
 
-**What this also means:** a user who reports "scrolling sometimes dismisses it" is describing
-velocity, not randomness — slow drags survive, so it feels intermittent and like a "special
-manoeuvre". Do not spend a build on bounce behaviour, `delaysContentTouches`, gesture delegates or
-`require(toFail:)`; none of them can reach the other process's recognizer.
+**Messages is not privileged, and is worth copying anyway.** It uses the same public extension point
+(`com.apple.usernotifications.content-extension`, `CKMessagesNotificationViewController`), and its
+ChatKit controller calls `grabFocus` from both `didReceiveNotification:` and `viewDidAppear:` — the
+two-call technique WWDC16's *Advanced Notifications* shows — so it opens with the reply field
+focused and no action rows. Match that for the reply experience; do not claim it as a scrolling fix.
+If you do focus the field, ask only for the height left above the keyboard: a panel that requests
+more than the host has is clipped **from the top**, which silently costs the header and its controls.
 
-**Two things worth doing anyway, for height rather than for the gesture:**
-- `NSExtensionContext.notificationActions` can be filtered while the panel is showing, so actions
-  the panel already offers as its own controls stop taking a row beneath it. The category keeps
-  registering them for other surfaces (a paired Watch shows the category's actions, not the
-  extension's).
-- Keep the reply controls in a fixed row outside the scrolling content; inside it they scroll away
-  exactly when the user wants them.
+**Still unexplained:** the user reports Messages' own expanded notification scrolling smoothly on a
+real iPhone. Simulator flicks are synthesized and this table may not transfer to a finger; the
+Simulator also would not expand Messages' own notification, so Apple's panel could not be run
+through the same harness. Do not resolve that gap by asserting either way.
 
-**Source:** thnkr.ing `fa32cd3`, after `9f54b66` (`.scrollBounceBehavior(.always)`) shipped on the
-guess that the scroll view could claim the drag, and his second report of the same bug.
+**Source:** thnkr.ing `fa32cd3` (paging marks), `774a7a5` (keyboard-first, claim withdrawn), after
+`9f54b66` shipped a guess. Investigations: GPT-6 Sol, then GPT-6 Astra read-only on the binaries.

@@ -133,7 +133,7 @@ Use `URLComponents.percentEncodedPath` / `percentEncodedQuery` / `percentEncoded
 
 **Recording from the background (App Intents, Action Button).** A recorder asks for the microphone only (input unit `isOutputEnabled = false`, no `defaultToSpeaker`), and a refused start is read by the exact error's meaning, never retried. See `references/ios-audio-from-background.md`.
 
-**Notification content extension (custom long-look UI).** A downward flick inside it is iOS's dismiss gesture and the extension always loses it — measured across SwiftUI, UIKit and with the actions removed. Scrolling back is paging controls, not a gesture. See `references/ios-notification-content-extension.md`.
+**Notification content extension (custom long-look UI).** A downward drag is judged by the system's outer platter on distance and speed: a long fast one closes the notification whatever the extension does (measured across SwiftUI, UIKit, no actions, short and tall panels, keyboard up and down), a short or slow one scrolls. Give reading-back its own paging controls, open the reply field focused as Messages does, and size the panel to the room left above the keyboard. See `references/ios-notification-content-extension.md`.
 
 **Verification gate.** No shell change reaches TestFlight without a simulator screenshot + assertion pass. Boot simulator, install the release build, launch against the production URL, wait for first paint, `xcrun simctl io booted screenshot`, then a Python image analysis asserts: no white band, status bar readable, PWA header not overlapping system chrome, bottom tab bar dark. Wire it into the ship script as a hard gate (`SKIP_VERIFY=1` only bypass).
 
